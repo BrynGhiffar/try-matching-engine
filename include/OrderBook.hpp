@@ -29,6 +29,9 @@ class OrderBook {
 
             std::vector<Order> possibleFills;
             Quantity incomingOrderQuantity = order.qty;
+
+            // Worst case time complexity here is number of orders in the orderbook, this can occur for example
+            // When the incoming order is able to match all orders in the orderbook.
             for (const auto& [ price, orders ]: orderBookSide) {
                 // If the current price does not match the order index, this means
                 // that subsequent orders in the order book also won't match.
@@ -49,8 +52,10 @@ class OrderBook {
             Quantity partialFilledQty = std::max(possibleFillsQtyTotal - order.qty, static_cast<Quantity>(0));
             size_t k = 0;
 
-            auto startEraseOrderBookSide = orderBookSide.begin();
-            auto endEraseOrderBookSide = orderBookSide.begin();
+            auto startEmptyPriceIndex = orderBookSide.begin();
+            auto endEmptyPriceIndex = orderBookSide.begin();
+
+            // Worst case time complexity here is the number of price indexes in the orderbook
             for (auto& [ price, orders ]: orderBookSide) {
                 if (k >= removeFirstOrders) break;
                 size_t rm = std::min(removeFirstOrders - k, orders.size());
@@ -60,11 +65,11 @@ class OrderBook {
                 orders.erase(orders.begin(), orders.begin() + rm);
                 k += rm;
 
-                if (orders.size() == 0) endEraseOrderBookSide++;
+                if (orders.size() == 0) endEmptyPriceIndex++;
             }
             
             // remove empty price indexes
-            orderBookSide.erase(startEraseOrderBookSide, endEraseOrderBookSide);
+            orderBookSide.erase(startEmptyPriceIndex, endEmptyPriceIndex);
 
             // If the last order to be filled still have left overs, then it is partially filled
             if (partialFilledQty > 0) {
@@ -95,4 +100,3 @@ class OrderBook {
             }
         }
 };
-
