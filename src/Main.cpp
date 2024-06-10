@@ -13,7 +13,7 @@ int main() {
 
     // orderBook.insertOrder(Order::createOrder(10, 100, OrderType::LIMIT, Side::SELL));
 
-    // orderBook.insertOrder(Order::createOrder(100, 20, OrderType::LIMIT, Side::BUY));
+    orderBook.insertOrder(Order::createOrder(990, 5, OrderType::LIMIT, Side::BUY));
     // orderBook.insertOrder(Order::createOrder(990, 5, OrderType::LIMIT, Side::BUY));
     std::cout << orderBook << std::endl;
 }

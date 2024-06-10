@@ -65,7 +65,7 @@ std::vector<Order> OrderBook::getBidOrders() const {
 
 std::vector<Order> OrderBook::getAskOrders() const {
     std::vector<Order> resAsks;
-    for (const auto &[price, orders]: bid) {
+    for (const auto &[price, orders]: ask) {
         for (const auto& order: orders) {
             resAsks.push_back(order);
         }

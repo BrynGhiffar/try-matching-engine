@@ -29,43 +29,44 @@ class OrderBook {
 
             std::vector<Order> possibleFills;
             Quantity incomingOrderQuantity = order.qty;
-            for (auto priceIt = orderBookSide.begin(); priceIt != orderBookSide.end() && incomingOrderQuantity > 0; priceIt++) {
-                auto [ price, orders ] = *priceIt;
+            for (const auto& [ price, orders ]: orderBookSide) {
+                // If the current price does not match the order index, this means
+                // that subsequent orders in the order book also won't match.
+                // Therefore, we can break outside of the loop
                 if (!isPriceMatch(order, price)) break;
-                for (auto it = orders.begin(); it != orders.end(); it++) {
-                    possibleFills.push_back(*it);
-                    incomingOrderQuantity = std::max(incomingOrderQuantity - it->qty, static_cast<Quantity>(0));
+
+                for (const auto& order: orders) {
+                    possibleFills.push_back(order);
+                    incomingOrderQuantity = std::max(incomingOrderQuantity - order.qty, static_cast<Quantity>(0));
+
+                    // if incomingOrderQuantity is empty this means we have all the orders that we want to fill
                     if (incomingOrderQuantity == 0) break;
                 }
             }
 
-            // how do we remove orders that have been filled from the orderbook?
-            // remove first 0 <= n <= k - 1 orders.
-
-            Quantity possibleFillsQtyTotal = getOrdersQty(possibleFills);
+            Quantity possibleFillsQtyTotal = getOrdersQty(possibleFills); // Total qty of possible orders.
             size_t removeFirstOrders = (possibleFillsQtyTotal > order.qty) ? possibleFills.size() - 1 : possibleFills.size();
             Quantity partialFilledQty = std::max(possibleFillsQtyTotal - order.qty, static_cast<Quantity>(0));
             size_t k = 0;
 
             auto startEraseOrderBookSide = orderBookSide.begin();
             auto endEraseOrderBookSide = orderBookSide.begin();
-            for (auto priceIt = orderBookSide.begin(); priceIt != orderBookSide.end() && k < removeFirstOrders; priceIt++) {
-                auto& orders = priceIt->second;
-                auto price = priceIt->first;
+            for (auto& [ price, orders ]: orderBookSide) {
+                if (k >= removeFirstOrders) break;
                 size_t rm = std::min(removeFirstOrders - k, orders.size());
-                // std::cout << "Removed rm orders from price index: " << removeFirstOrders << std::endl;
+
+                // Orders that are removed from the orderbook can become trades, since they have matched with the incoming order.
+                // This is not yet implemented.
                 orders.erase(orders.begin(), orders.begin() + rm);
                 k += rm;
 
-                // remove empty price indexes
                 if (orders.size() == 0) endEraseOrderBookSide++;
             }
-
-            // better way to do this?
             
-            // This may not be that efficient?
+            // remove empty price indexes
             orderBookSide.erase(startEraseOrderBookSide, endEraseOrderBookSide);
 
+            // If the last order to be filled still have left overs, then it is partially filled
             if (partialFilledQty > 0) {
                 auto it = orderBookSide.begin();
                 auto& orders = it->second;
@@ -77,13 +78,15 @@ class OrderBook {
             }
 
             if (incomingOrderQuantity > 0) {
-                if (incomingOrderQuantity != order.qty) {
+                if (incomingOrderQuantity < order.qty) {
+                    // If there are still left overs in incoming order
                     std::cout << "INFO: Incoming Order Partial Filled" << std::endl;
                     order.orderStatus = OrderStatus::PARTIAL_FILLED;
                     std::cout << order << std::endl;
-                    // order.orderStatus = 
                 }
                 order.qty = incomingOrderQuantity;
+
+                // If first order in price index, create a new price index
                 if (incomingOrderBookSide.find(order.price) == incomingOrderBookSide.cend()) {
                     incomingOrderBookSide.insert(std::pair<Price, std::vector<Order>>(order.price, { order }));
                 } else {
